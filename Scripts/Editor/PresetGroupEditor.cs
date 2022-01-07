@@ -13,6 +13,7 @@ namespace Yorozu.EditorTool.Importer
         {
             internal static GUIContent Plus;
             internal static GUIContent Minus;
+            internal static GUIContent Delete;
             internal static GUILayoutOption IconWidth;
             internal static GUILayoutOption Width;
 
@@ -20,12 +21,14 @@ namespace Yorozu.EditorTool.Importer
             {
                 Plus = EditorGUIUtility.TrIconContent("Toolbar Plus");
                 Minus = EditorGUIUtility.TrIconContent("Toolbar Minus");
+                Delete = EditorGUIUtility.TrIconContent("d_TreeEditor.Trash");
                 IconWidth = GUILayout.Width(22f);
-                Width = GUILayout.Width(150f);
+                Width = GUILayout.Width(100f);
             }
         }
         
         private string FullName;
+        
         [SerializeField]
         private GUIContent _content;
 
@@ -48,7 +51,7 @@ namespace Yorozu.EditorTool.Importer
         /// <summary>
         /// Body
         /// </summary>
-        internal void OnGUI()
+        internal bool OnGUI(PresetImporterSetting setting)
         {
             using (new EditorGUILayout.VerticalScope("HelpBox"))
             {
@@ -59,29 +62,28 @@ namespace Yorozu.EditorTool.Importer
                     EditorGUILayout.LabelField($"({FullName})");
                 }
 
-                foreach (var group in _groups)
+                for (var i = 0; i < _groups.Length; i++)
                 {
                     using (new EditorGUILayout.VerticalScope("box"))
                     {
-                        Body(group);
+                        var delete = Preset(setting, _groups[i]);
+                        if (delete)
+                            return delete;
+
+                        Folders(_groups[i]);
+            
+                        Editor(_groups[i]);
                     }
                 }
             }
-        }
 
-        private void Body(PresetImporterSetting.Group group)
-        {
-            Preset(group);
-
-            Folders(group);
-            
-            Editor(group);
+            return false;
         }
 
         /// <summary>
         /// 対象となる Preset
         /// </summary>
-        private void Preset(PresetImporterSetting.Group group)
+        private bool Preset(PresetImporterSetting setting, PresetImporterSetting.Group group)
         {
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -99,13 +101,13 @@ namespace Yorozu.EditorTool.Importer
                     if (check.changed)
                     {
                         if (preset == null)
-                            return;
+                            return false;
 
                         // AssetImporter の Preset じゃない場合
                         if (!PresetImporterUtil.IsImporterPreset(preset))
                         {
                             Debug.Log("Preset it not importType");
-                            return;
+                            return false;
                         }
 
                         // 型は一致する必要がある
@@ -113,7 +115,7 @@ namespace Yorozu.EditorTool.Importer
                         if (group.PresetTypeName != preset.GetPresetType().GetManagedTypeName())
                         {
                             Debug.Log("Preset Type is not different");
-                            return;
+                            return false;
                         }
 
                         group.Preset = preset;
@@ -124,7 +126,15 @@ namespace Yorozu.EditorTool.Importer
                 {
                     group.Folders.Add(new PresetImporterSetting.FolderData(null));
                 }
+                if (GUILayout.Button(Styles.Delete, Styles.IconWidth))
+                {
+                    setting.Groups.Remove(group);
+                    GUI.changed = true;
+                    return true;
+                }
             }
+
+            return false;
         }
         
         /// <summary>

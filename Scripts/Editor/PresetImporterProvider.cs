@@ -1,9 +1,7 @@
 #if UNITY_EDITOR
 
 using System.Collections.Generic;
-using System.Linq;
 using UnityEditor;
-using UnityEditor.Presets;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -11,64 +9,48 @@ namespace Yorozu.EditorTool.Importer
 {
     public class PresetImporterProvider : SettingsProvider
     {
-        private PresetImporterProvider(string path, SettingsScope scopes, IEnumerable<string> keywords = null) : base(path, scopes, keywords)
+        private PresetImporterProvider() : base("Project/Preset Importer", SettingsScope.Project)
         {
+        }
+        
+        [SettingsProviderGroup]
+        private static SettingsProvider[] CreateSettingsProvider()
+        {
+            var providers = new List<SettingsProvider> { new PresetImporterProvider() };
+
+            if (Load() != null)
+            {
+                var provider = new AssetSettingsProvider("Project/Preset Importer/Settings", Load);
+                providers.Add(provider);
+            }
+
+            return providers.ToArray();
         }
 
         private PresetImporterSetting _setting;
         private List<PresetGroupEditor> _presetGroups;
-        
-        /// <summary>
-        /// Project Settings に表示させる
-        /// </summary>
-        /// <returns></returns>
-        [SettingsProvider]
-        public static SettingsProvider RegisterProject()
+
+        private static PresetImporterSetting Load()
         {
-            return new PresetImporterProvider("Yorozu/", SettingsScope.Project)
-            {
-                label = "Preset Importer",
-            };
+            var guids = AssetDatabase.FindAssets($"t:{nameof(PresetImporterSetting)}");
+            if (guids.Length <= 0)
+                return null;
+            
+            var path = AssetDatabase.GUIDToAssetPath(guids[0]);
+            return AssetDatabase.LoadAssetAtPath<PresetImporterSetting>(path);
         }
         
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
             base.OnActivate(searchContext, rootElement);
-            var guids = AssetDatabase.FindAssets($"t:{nameof(PresetImporterSetting)}");
-            if (guids.Length <= 0)
-                return;
-
-            var path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            _setting = AssetDatabase.LoadAssetAtPath<PresetImporterSetting>(path);
-            CreateGroup();
-        }
-        
-        /// <summary>
-        /// Preset の型で区分する
-        /// </summary>
-        private void CreateGroup()
-        {
-            if (_setting == null)
-                return;
-            
-            var groupBy = _setting.Groups
-                    .GroupBy(g => g.PresetTypeName)
-                ;
-
-            _presetGroups = new List<PresetGroupEditor>(groupBy.Count());
-            
-            foreach (var g in groupBy)
-            {
-                var pg = new PresetGroupEditor(g);
-                _presetGroups.Add(pg);
-            }
+            _setting = Load();
         }
         
         public override void OnGUI(string searchContext)
         {
-            if (_setting == null)
+            using (new EditorGUI.DisabledScope(_setting != null))
             {
-                if (GUILayout.Button("Create"))
+                if (GUILayout.Button("Create Setting"))
                 {
                     var path = EditorUtility.SaveFilePanelInProject("Select Folder", nameof(PresetImporterSetting), "asset", "");
                     if (!string.IsNullOrEmpty(path))
@@ -77,47 +59,15 @@ namespace Yorozu.EditorTool.Importer
                         AssetDatabase.CreateAsset(instance, path);
                         AssetDatabase.Refresh();
                         _setting = AssetDatabase.LoadAssetAtPath<PresetImporterSetting>(path);
-                        CreateGroup();
                     }
-                }
-                return;
-            }
-            
-            if (GUILayout.Button("Add Importer Preset"))
-            {
-                var path = EditorUtility.OpenFilePanel("Select Preset Asset", "Assets/", "preset");
-                if (!string.IsNullOrEmpty(path))
-                {
-                    path = path.Replace(Application.dataPath, "Assets");
-                    var preset = AssetDatabase.LoadAssetAtPath<Preset>(path);
-                    if (preset == null)
-                        return;
-                        
-                    if (!PresetImporterUtil.IsImporterPreset(preset))
-                    {
-                        Debug.Log("Select Importer Preset");
-                        return;
-                    }
-                    
-                    _setting.Groups.Add(new PresetImporterSetting.Group(preset));
-                    CreateGroup();
-                    EditorUtility.SetDirty(_setting);
-                    AssetDatabase.SaveAssets();
-                    GUIUtility.ExitGUI();
                 }
             }
 
-            using (var check = new EditorGUI.ChangeCheckScope())
+            if (_setting != null)
             {
-                foreach (var pg in _presetGroups)
+                if (GUILayout.Button("Ping Setting"))
                 {
-                    pg.OnGUI();
-                }
-
-                if (check.changed)
-                {
-                    EditorUtility.SetDirty(_setting);
-                    AssetDatabase.SaveAssets();
+                    EditorGUIUtility.PingObject(_setting);
                 }
             }
         }
