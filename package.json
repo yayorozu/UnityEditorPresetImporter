@@ -1,0 +1,17 @@
+{
+  "name": "yorozu.preset-importer",
+  "version": "1.0.0",
+  "displayName": "Preset Importer",
+  "description": "Preset を asset の import 時に適応するツール",
+  "unity": "2020.3",
+  "keywords": [
+    "EditorTool",
+    "Yorozu",
+    "Preset"
+  ],
+  "author": {
+    "name": "Yorozu",
+    "email": "hatch.tech.eng@gmail.com",
+    "url": "https://github.com/yayorozu"
+  }
+}
