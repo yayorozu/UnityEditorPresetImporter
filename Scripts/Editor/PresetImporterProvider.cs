@@ -25,7 +25,7 @@ namespace Yorozu.EditorTool.Importer
         [SettingsProvider]
         public static SettingsProvider RegisterProject()
         {
-            return new PresetImporterProvider("Project/", SettingsScope.Project)
+            return new PresetImporterProvider("Yorozu/", SettingsScope.Project)
             {
                 label = "Preset Importer",
             };
