@@ -25,16 +25,18 @@ namespace Yorozu.EditorTool.Importer
             if (_setting == null)
                 return;
             
-            var groupBy = _setting.Groups
-                    .GroupBy(g => g.PresetTypeName)
-                ;
-
-            _presetGroups = new List<PresetGroupEditor>(groupBy.Count());
-            
-            foreach (var g in groupBy)
+            _presetGroups = new List<PresetGroupEditor>();
+            if (_setting.Groups.Any())
             {
-                var pg = new PresetGroupEditor(g);
-                _presetGroups.Add(pg);
+                var groupBy = _setting.Groups
+                        .GroupBy(g => g.PresetTypeName)
+                    ;
+                
+                foreach (var g in groupBy)
+                {
+                    var pg = new PresetGroupEditor(g);
+                    _presetGroups.Add(pg);
+                }
             }
         }
         
