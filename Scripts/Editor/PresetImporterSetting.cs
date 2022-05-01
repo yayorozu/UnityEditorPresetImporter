@@ -14,7 +14,7 @@ namespace Yorozu.EditorTool.Importer
     public class PresetImporterSetting : ScriptableObject
     {
         [SerializeField]
-        internal List<Group> Groups;
+        internal List<Group> Groups = new List<Group>();
 
         [Serializable]
         internal class FolderData
