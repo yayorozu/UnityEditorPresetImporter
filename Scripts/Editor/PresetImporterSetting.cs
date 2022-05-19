@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Presets;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Yorozu.EditorTool.Importer
 {
@@ -22,9 +20,20 @@ namespace Yorozu.EditorTool.Importer
             [SerializeField]
             private DefaultAsset _folderAsset;
             internal DefaultAsset FolderAsset => _folderAsset;
-            [SerializeField]
-            internal string Path;
-
+            [NonSerialized]
+            private string _path;
+            internal string Path
+            {
+                get
+                {
+                    if (string.IsNullOrEmpty(_path) && _folderAsset != null)
+                    {
+                        _path = AssetDatabase.GetAssetPath(_folderAsset);
+                    }
+                    return _path;
+                }
+            }
+            
             internal FolderData(DefaultAsset folderAsset)
             {
                 Change(folderAsset);
@@ -43,7 +52,6 @@ namespace Yorozu.EditorTool.Importer
                 }
 
                 _folderAsset = folderAsset;
-                Path = folderAsset != null ? AssetDatabase.GetAssetPath(folderAsset) : "";
             }
         }
         
@@ -124,7 +132,7 @@ namespace Yorozu.EditorTool.Importer
                 _targetPaths = Groups
                     .Where(g => g.Preset != null)
                     .SelectMany(g => g.Folders)
-                    .Select(f => f.Path)
+                    .Select(f => AssetDatabase.GetAssetPath(f.FolderAsset))
                     .Distinct()
                     .ToList();
             }
@@ -151,7 +159,7 @@ namespace Yorozu.EditorTool.Importer
                 return;
 
             // 見つかったら最小マッチで並び替え
-            var sorted = findPresets.OrderBy(p => p.Folders.Max(f => Regex.Match(path, f.Path).Length));
+            var sorted = findPresets.OrderBy(p => p.Folders.Max(f => Regex.Match(path, AssetDatabase.GetAssetPath(f.FolderAsset)).Length));
             
             // 適応していく
             foreach (var presetGroup in sorted)
